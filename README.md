@@ -1,7 +1,7 @@
 # Noa Pozzo Di Borgo
 30, boulevard Maréchal Joffre  
 21000 DIJON  
-Tél : 07.67.86.47.67  
+Tél : +33 767864767  
 E-mail : noa.pozzodiborgo@gmail.com  
 Permis B + véhicule
 
