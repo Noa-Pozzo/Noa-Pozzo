@@ -3,6 +3,7 @@
 21000 DIJON  
 Tél : 07.67.86.47.67  
 E-mail : noa.pozzodiborgo@gmail.com  
+Permis B + véhicule
 
 ## CURRICULUM VITAE
 
