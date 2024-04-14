@@ -63,3 +63,9 @@ Sport, musique, jeux vidéo.
   ## Troisième année
 Cette année un projet à été fait au semestre 5 voici le lien pour voir ce qui à été fait :
   - https://github.com/Noa-Pozzo/Noa-Pozzo/blob/main/SAE_S5.txt
+
+# Ma formation en BUT
+voici le lien de la présentation de ma formation 
+  - https://github.com/Noa-Pozzo/Noa-Pozzo/blob/main/rentree_dacs_23.pdf
+## Est ce que cette formation à répondu à mes attentes ?
+Je ne dirait pas oui j'ai été plutôt déçu par l'organisation de la formation que ce soir au niveau des cours non assurée, des profs qui n'ont aucune envie d'enseigner ou au niveau du contenu des cours.
