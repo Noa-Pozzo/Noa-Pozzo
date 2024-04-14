@@ -60,7 +60,6 @@ Sport, musique, jeux vidéo.
   - https://iutdijon.u-bourgogne.fr/mahara/module/framework/matrix.php?id=6538
   ## Stage deuxième année
   - https://iutdijon.u-bourgogne.fr/mahara/view/view.php?profile=n0no21&page=stage-premiere-annee
-
-
+  ## Troisième année
 Cette année un projet à été fait au semestre 5 voici le lien pour voir ce qui à été fait :
   - https://github.com/Noa-Pozzo/Noa-Pozzo/blob/main/SAE_S5.txt
