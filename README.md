@@ -50,3 +50,13 @@ Permis B + véhicule
 
 ### CENTRES D’INTÉRÊT  
 Sport, musique, jeux vidéo.
+
+
+
+# Les lien de mes précédents portfolio :
+  ## Première année
+    - https://iutdijon.u-bourgogne.fr/mahara/module/framework/matrix.php?id=1547
+  ## Deuxième année
+    - https://iutdijon.u-bourgogne.fr/mahara/module/framework/matrix.php?id=6538
+  ## Stage deuxième année
+    - https://iutdijon.u-bourgogne.fr/mahara/view/view.php?profile=n0no21&page=stage-premiere-annee
