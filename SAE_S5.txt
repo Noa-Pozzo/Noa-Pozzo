@@ -1,0 +1,419 @@
+---
+title: "SAE - Tutoriel installations des services"
+author: Wisslé Guillaume, Mingot Arthur, Pozzo di Borgo Noa
+lang: fr
+date: 16/10/2023
+titlepage: true
+toc-own-page: true
+---
+
+# Introduction
+
+Ce repositories contient différents tutoriels pour l'installation de nextcloud, lstu, en utilisant keycloak et ldap pour l'authentification.
+Vous trouverez les différents tutoriels dans le dossier ``tuto``, les fichiers de configuration dans ``conf`` et les services dans ``services`` (_rien de bien compliqué :)_)
+
+# Spécification globale
+
+Distributor ID:	Debian
+Description:	Debian GNU/Linux 12 (bookworm)
+Release:	12
+Codename:	bookworm
+Linux 6.1.0-12-amd64 #1 SMP PREEMPT_DYNAMIC Debian 6.1.52-1 (2023-09-07) x86_64 GNU/Linux
+
+# Pré-requis NGINX
+
+Nous allons utiliser le serveur Nginx pour l'installation de Nextcloud, de lstu et de l'utilitaire PhpLdapAdmin.
+
+Pour installer Nginx il faut ajouter les repositories debian ( /etc/apt/sources.list) fourni par nginx :
+
+```
+$ deb https://nginx.org/packages/ubuntu/ bookworm nginx
+$ deb-src https://nginx.org/packages/ubuntu/ bookworm nginx
+```
+> A noter qu'il faut changer ``bookworm`` en fonction de votre version de debian
+
+
+update le apt :
+```bash
+$ apt update
+```
+et installer nginx : 
+```bash
+$ apt install nginx 
+```
+## Tuto
+
+
+[NEXTCLOUD](/tuto/nextcloud.md)  
+
+## Nextcloud
+
+> Nextcloud est un service web et doit donc être utilisé avec serveur web **Apache** ou **Nginx** (Voir [ici](../README.md#pré-requis-nginx) pour l'installation de nginx)
+
+### Installation de php-fpm et de ces modules
+
+Nextcloud utilise **php** pour sa partie backend, il est donc nécessaire d'installer php-fpm pour pouvoir l'utiliser avec nginx.
+Il est aussi nécessaire d'installer certaines extensions, (la liste est disponible [ici](https://docs.nextcloud.com/server/latest/admin_manual/installation/source_installation.html#prerequisites-for-manual-installation))
+
+```bash
+$ sudo apt install php-fpm
+$ sudo apt-get install php-{ctype,curl,dom,gd,mbstring,posix,xml,zip,mysql,bz2,intl,ldap,imap,gmp,bcmath,ftp,imagick}
+```
+
+> la version installée de _php_ par défaut sur bookworm est php8.2 qui est la version recommandée par nginx (voir [ici](https://docs.nextcloud.com/server/latest/admin_manual/installation/system_requirements.html)), si vous souhaitez spécifier la version à installer, il suffit de le préciser : ``apt install php8.2-fpm``
+
+
+### Installation de la base de donnée
+
+Nextcloud propose plusieurs solutions de stockage SQL : 
+
+- SQLITE
+- PostgreSQL
+- Mysql/MariaDB
+- Oracle DB
+
+> Nous avons choisi l'utilisation d'un serveur ``mariadb`` car celui-ci est opensource et est recommandé par nextcloud.
+
+```
+$ sudo apt install mariadb-server
+$ sudo mysql_secure_installation
+```
+> Je vous conseille de laisser les options par défaut de ``mariadb``, n'oubliez pas de changer le mot de passe root.
+
+
+### Installation de Nextcloud
+
+après avoir bien installé la **base de donnée**, **nginx**, **php** et les **modules php**, il suffit d'extraire le fichier compressé fourni par nextcloud (vous trouverez la dernière version [ici](https://download.nextcloud.com/server/releases/latest.zip) dans le dossier ``/var/www/nextcloud`` 
+
+### Configuration de l'hôte virtuel
+
+La configuration recommandée par nextcloud est disponible [ici](https://docs.nextcloud.com/server/latest/admin_manual/installation/nginx.html)
+Il est conseillé de créer un fichier de configuration par vhost avec comme nom, le nom de domaine associé au vhost, dans notre cas se sera : ``/etc/nginx/sites-availables/nextcloud.mwp``, après avoir crée le fichier et d'avoir poussé la configuration dedans, il suffit d'activer la configuration en créant un lien symbolique de ``/etc/nginx/sites-available/nextcloud.mwp`` vers ``/etc/nginx/sites-enabled/nextcloud.mwp`` : 
+
+> Vous retrouverez la configuration utilisée [ici](../conf/nginx/nextcloud.conf)
+
+```bash
+$ ln -s /etc/nginx/sites-available/nextcloud.mwp /etc/nginx/sites-enabled/nextcloud.mwp
+```
+
+_N'oubliez pas de mettre la bonne version de php ainsi que le bon nom de domaine dans votre configuration nginx_
+
+Nextcloud recommande au minimum 512Mb de ram pour php, la configuration de php-fpm se trouve dans ``/etc/php/{VERSION}/fpm/php.ini``.
+Il suffit de modifier la ligne ``memory_limit`` en indiquant la nouvelle limite de ram.
+
+> Vous retrouverez la configuration php utilisée [ici](../conf/nextcloud/php.ini)
+
+
+Après avoir bien configuré les différents services, un redémarrage de ceux-ci sont obligatoire :
+```bash
+$ nginx -t && nginx -s reload
+$ systemctl restart php8.2-fpm.service
+```
+
+[KEYCLOAK](/tuto/keycloak.md)  
+
+## Keycloak
+
+## Installation de Keycloak
+
+Keycloak fourni une documentation pour l'installation du service disponible [ici](https://www.keycloak.org/getting-started/getting-started-zip)
+
+Nous allons installer la version 22.0.4 disponible [ici](https://github.com/keycloak/keycloak/releases/download/22.0.4/keycloak-22.0.4.zip).
+Il suffit de télécharger le fichier compressé et de l'extraire.
+
+```bash
+$ wget https://github.com/keycloak/keycloak/releases/download/22.0.4/keycloak-22.0.4.zip
+$ unzip keycloak-22.0.4.zip
+```
+
+Keycloak utilise **java 17 ou plus** pour fonctionner, il faut donc l'installer : 
+```bash
+$ sudo apt install openjdk-17-jdk
+```
+
+La configuration de keycloak s'effectue sur le panel administrateur web, il suffit donc de lancer le serveur en mode développement et d'y accéder depuis le réseau local : 
+```bash
+$ sudo bin/kc.sh start-dev
+```
+Keycloak va vous inviter à créer un compte administrateur.
+
+Si vous ne pouvez pas accéder au réseau local pour la création du compte, vous pouvez définir des variables d'environnement avant le lancement de keycloak : 
+```bash
+$  KEYCLOAK_ADMIN=admin KEYCLOAK_ADMIN_PASSWORD=admin ./bin/kc.sh start-dev
+```
+
+> Vous retrouverez la configuration utilisée [ici](../conf/keycloak/keycloak.conf)
+
+#### Mise en place d’un systemd
+
+Pour mettre en place le systemd veuillez suivre les étapes suivantes : 
+
+Tout d’abord allez dans le fichier **providers** de keycloak
+```
+cd keycloak-22.0.3/providers/
+```
+Attention remplacez keycloak-22.0.3 par le nom de votre dossier keycloak.
+
+Lorsque vous êtes dans le dossier providers, ajoutez les fichiers jar suivants :
+```
+wget https://repo1.maven.org/maven2/io/quarkiverse/systemd/notify/quarkus-systemd-notify-deployment/1.0.2/quarkus-systemd-notify-deployment-1.0.2.jar
+wget https://repo1.maven.org/maven2/io/quarkiverse/systemd/notify/quarkus-systemd-notify/1.0.2/quarkus-systemd-notify-1.0.2.jar
+```
+
+Nous allons maintenant créer un fichier de log pour Keycloak :
+```
+cd /var/log/
+sudo mkdir keycloak && cd keycloak/
+sudo touch keycloak.log
+```
+Ensuite, nous allons créer un fichier de configuration à l’adresse suivante :
+```
+touch /etc/systemd/system/keycloak.service
+```
+> Vous retrouverez la configuration utilisée [ici](../services/keycloak.service)
+
+## Configuration de Keycloak avec LDAP
+
+Voici les premières lignes de configuration de Keycloak avec LDAP, il faut modifier les lignes suivantes. **Surtout** il faut passer "Vendor" à "Other" afin d'avoir une configuration par défaut qui est fonctionnelle.
+![Provider LDAP -> OTHER](../images/keycloak-ldap/option-general.png)
+
+Ensuite il faut entrer l'url de connexion sur le format ``ldap://ip``. Le port n'est pas entrer si vous avez conservé le port par défaut.
+
+![URL CONNEXION LDAP](../images/keycloak-ldap/url-connexion.png)
+
+Il existe le bouton ``Test connection`` qui permet de vérifier que la connexion avec le serveur ldap s'effectue.
+
+Une fois la connexion établie il faut ajouter l'utilisateur admin du LDAP afin de pouvoir se connecter avec ce compte, créer des utilisateurs et les synchroniser.
+
+![INFORMATION D'AUTH](../images/keycloak-ldap/utilisateur-admin.png)
+
+Bind DN va se référer au bind_id de la configuration de phpLDAPadmin. Bind credentials lui se réferera au mot de passe du compte admin du LDAP, celui configuré lors de la commande "dpkg-reconfigure slapd".  <br>
+
+> Voir la configuration de slapd [ici](../tuto/ldap.md)
+ 
+Il existe aussi un bouton "Test authentification" pour vérifier que les valeurs entrées sont les bonnes. <br>
+
+![CONFIG LDAP](../images/keycloak-ldap/configuration-ldap.png)
+
+Parmi toutes ces options, une seule est réellement importante, "Users DN", si vous avez créé un ``CN`` (Canonical Name), ici un Posix Group a été crée, afin de pouvoir séparer les utilisateurs par groupes, il faut entrer le chemin de ce ``CN``. <br>
+
+La création des utilisateurs se fait donc depuis PhpLDAPAdmin.
+
+Une fois cela fait il ne reste plus qu'à activer la synchronisation, activez "Periodic Full Sync" et "Periodic Changed Users Sync". Les valeurs à entrer sont en seconde.<br>
+
+![SYNC SETTINGS](../images/keycloak-ldap/synchronisation.png)
+
+La configuration de Keycloak est terminée.
+
+[LDAP](/tuto/ldap.md) 
+
+## Installation de Slapd
+
+```sh
+sudo apt install slapd
+```
+Cette commande demandera l'insertion d'un mot de passe admin.
+
+Suite à l'installation de slapd, il faut le configurer avec cette commande :
+```sh
+sudo dpkg-reconfigure slapd
+```
+
+Cette commande renvoie ce format et pour avoir une bonne configuration, il faut répondre comme ceci : 
+```sh
+If you enable this option, no initial configuration or database will be created for you.
+
+Omit OpenLDAP server configuration? [yes/no] 'no'
+
+DNS domain name: 'Votre nom de domaine'
+
+Please enter the name of the organization to use in the base DN of your LDAP directory.
+
+Organization name: 'Nom D organisation'
+
+Please enter the password for the admin entry in your LDAP directory.
+
+Administrator password: 'VotreMotDePasse'
+
+Please enter the admin password for your LDAP directory again to verify that you have typed it correctly.
+
+Confirm password: 'VotreMotDePasse'
+
+Do you want the database to be removed when slapd is purged? [yes/no] 'yes'
+
+Move old database? [yes/no] 'yes'
+```
+
+Ici nous y avons entrée plusieurs informations, celles-ci ont servi à faire la configuration initiale de slapd. Une fois cette configuration faite, le LDAP est configuré.
+
+## Installation de PhpLdapAdmin
+
+Afin d'installer phpldapadmin réaliser la commande suivante :
+```sh
+sudo apt install phpldapadmin
+```
+
+### Fonctionnement de PhpLdapAdmin avec NGINX
+
+Afin de faire fonctionner PhpLdapAdmin avec NGINX, il faut ajouter un vhost. N'oubliez pas de modifier votre version de php et votre nom de domaine en fonction de vos besoins.<br>
+
+> Vous retrouverez la configuration utilisée [ici](../conf/nginx/phpldapadmin.conf)
+
+
+### Configuration de PhpLdapAdmin
+
+Afin de configurer phpldapadmin, il faut modifier ces lignes, celle-ci permettent de définir le serveur LDAP par défaut à utiliser, le nom du serveur, son nom de domaine, le compte admin et le port si nécessaire. Le port 389 étant le port par défaut. La ligne "anon_bind" doit être mise à ``false`` afin d'interdire la connexion anonyme.
+
+Cette configuration est à modifier dans le fichier /etc/phpldapadmin/config.php
+
+Ces lignes ne se suivent pas et doivent être trouvé dans le fichier de configuration. 
+
+```bash
+$servers->setValue('server','host','127.0.0.1'); # Il faut modifier 127.0.0.1 par l'adresse ip du serveur LDAP
+$servers->setValue('server','base',array('dc=ldap,dc=mwp')); # Il faut modifier dc=ldap,dc=mwp par le nom de domaine du serveur LDAP
+$servers->setValue('login','bind_id','cn=admin,dc=ldap,dc=mwp'); # Il faut modifier cn=admin,dc=ldap,dc=mwp par le compte admin du serveur LDAP
+$servers->setValue('server','port',389); # Il faut modifier 389 par le port du serveur LDAP
+$servers->setValue('login','anon_bind',false); # Il faut mettre false afin d'interdire la connexion anonyme
+```
+ 
+[LSTU](/tuto/lstu.md)  
+
+## LSTU
+### Installation
+
+L'installation de LSTU se fait en quelques commandes trouvable sur le [wiki du projet](https://framagit.org/fiat-tux/hat-softwares/lstu/-/wikis/installation).  
+
+LSTU utilise certaines dépendances dont par exemple ``libmariadb-dev`` qui est demandé pour l'utilisation de la base de donnée MariaDB (ce qui est notre cas).  
+
+```sh
+sudo apt install build-essential libssl-dev zlib1g-dev curl libpng-dev libmariadbd-dev
+```
+
+Il faut aussi ajouter un lien symbolique a la configuration de mariadb :
+```sh
+sudo cd $(dirname $(which mariadb_config))
+sudo ln -s mariadb_config mysql_config
+```
+
+LSTU utilise le language Perl aini que certains modules pour fonctionner.
+Le langage perle utilise cpan pour la gestion de ces modules.
+
+Pour installer les modules perl, il suffit simplement d'éxecuter la commande suivante :  
+
+```sh
+sudo cpan Carton
+```
+
+Une fois les dépendances installé il n'a plus qu'à cloner le projet LSTU dans le dossier que vous souhaitez, idéalement /var/www/.
+
+```sh
+git clone https://framagit.org/luc/lstu.git
+cd lstu
+```
+
+Une fois le dossier cloné vous n'aurez plus qu'à executer la commande d'installation avec les paramètres requis en fonction de votre configuration, ici l'utilisation de mariadb : 
+```sh
+carton install --deployment --without=cache --without=sqlite --without=postgresql
+```	
+
+### Problèmes rencontré 
+
+Il se peut que vous ayez des problèmes avec certains modules, ici nous avons rencontré un problème avec Pod::Parser.
+Pour régler le problème il suffit d'installer le module manuellement à l'aide de cette commande :  
+
+```sh
+cpanm -L local Pod::Parser
+```
+### Configuration de LSTU :
+
+Pour cela il faut copier la configuration par défaut :  
+
+```sh
+cp lstu.conf.template lstu.conf
+```
+
+Une fois la copie effectuée, vous pouvez modifier le fichier à l'aide de votre éditeur favoris (vim).   
+Nous allons modifier quelques lignes afin de pouvoir l'utiliser avec ``MariaDB`` et l'utiliser sans utilisateurs.
+
+En premier temps modifier la ligne "listen" afin de pouvoir utiliser LSTU, si la valeur est laissé par défaut soit 127.0.0.1, LSTU sera accessible seulement par la machine hôte.  
+
+```sh
+listen => ['http://0.0.0.0:8080'],
+```
+
+Le passage de l'ip à ``0.0.0.0`` permet d'écouter sur toutes les interfaces.  
+
+Il faut aussi ajouter un "contact", la ligne est à décommenter et à modifier avec l'email de l'administrateur :  
+
+```sh
+contact       => 'admin@mwp.com',
+```
+
+Puis il ne reste plus qu'à descendre jusqu'au ligne commenté de MySQL et à modifier les lignes suivantes, vous pouvez décommenter le port si vous utilisez un port différent. : <br>
+
+```sh
+# MySQL ONLY - only used if dbtype is set to mysql
+    # these are the credentials to access the MySQL database
+    # mandatory if you choosed mysql as dbtype
+    mysqldb => {
+        database => 'Nom de la base de donnée lstu',
+        host     => 'IP du serveur MariaDB',
+        # optional, default is 3306
+        #port     => 3306,
+        user     => 'Nom d utilisateur de la base de donnée lstu',
+        pwd      => 'Mot de passe de l utilisateur lstu',
+        # optional, default is 5 (set to 0 to disable persistent connections)
+        #max_connections => 5,
+    },
+```
+
+> Vous retrouverez la configuration utilisée (sans oauth proxy) [ici](../conf/lstu/lstu_without_oauth.conf).
+
+Une fois ces modifications effectués vous pourrez lancer le service à l'aide de cette commande, afin de s'assurer que l'ensemble des modifications soit prises en compte.
+
+
+```sh
+carton exec hypnotoad script/lstu
+```
+
+Afin de créer un systemd pour LSTU, il faut copier le fichier lstu.service dans /etc/systemd/system/ avec les lignes suivantes : <br>
+<br>
+> Si vous avez installé LSTU dans /var/www/lstu/ vous n'aurez qu'à copier coller ces commandes. :  
+```sh
+sudo su
+cp utilities/lstu.service /etc/systemd/system/
+systemctl daemon-reload
+systemctl enable lstu.service
+systemctl start lstu.service
+```
+> Surtout ne pas oublier de modifier les chemins afin d'y entrer votre dossier LSTU.
+
+
+
+Une fois le fichier créé il ne reste plus qu'à recharger la configuration systemd :  
+```sh
+sudo systemctl daemon-reload
+```
+
+Puis à lancer le service :  
+```sh
+sudo systemctl start lstu
+```
+
+Si vous souhaitez qu'il se lance au démarrage de la machine il suffit de faire :  
+```sh  
+sudo systemctl enable lstu
+```
+
+
+### Configuration de LSTU avec OAuth Proxy
+
+Pour que le service LSTU passe par le OAuth Proxy, il faut utiliser la configuration nginx disponible [ici](../conf/nginx/lstu.conf)
+
+_N'oubliez pas de modifier le nom de domaine et le certificat ssl_
+
+Qui permet de **passer certaines requêtes** qui demande une **authentification** par le serveur **Oauth Proxy** (qui lui même passe la requête au serveur LSTU)
+Ou **directement** au serveur LSTU (Si la requête ne demande pas une authentification, comme pour accéder au lien par exemple)
+
+Les requêtes qui demande la location ``/``, ``/a/`` ou encore ``/oauth2/`` utilise OAuthProxy, et le reste passe directement sur le serveur LSTU.
+
