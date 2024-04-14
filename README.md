@@ -53,7 +53,7 @@ Sport, musique, jeux vidéo.
 
 
 
-# Les lien de mes précédents portfolio :
+# Les liens de mes précédents portfolio :
   ## Première année
     - https://iutdijon.u-bourgogne.fr/mahara/module/framework/matrix.php?id=1547
   ## Deuxième année
